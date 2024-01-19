@@ -1,0 +1,286 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Ruxo Production</title>
+    <link rel="stylesheet" href="styles.css"> 
+</head>
+<body>
+    <form id="orderForm">
+        <label for="accountManager">Account Manager:</label>
+        <select id="accountManager" name="accountManager">
+            <option value="Choose Option">Choose Option</option>
+            <option value="Daryl">Daryl</option>
+            <option value="Daniel">Daniel</option>
+            <option value="J.P">J.P</option>
+            <option value="Candice">Candice</option>
+            <option value="Ashley">Ashley</option>
+            <option value="Jacques">Jacques</option>
+            <option value="Ernest">Ernest</option>
+            <!-- ... (other options) ... -->
+        </select>
+
+        <label for="materialCut">Material Cut:</label>
+        <select id="materialCut" name="materialCut">
+            <option value="Choose Option">Choose Option</option>
+            <option value="Die Cut">Die Cut</option>
+            <option value="Continuous">Continuous</option>
+        </select>
+    
+        <label for="specialCut">Special Cut:</label>
+        <select id="specialCut" name="specialCut">
+            <option value="Choose Option">Choose Option</option>
+            <option value="Circle No Square">Circle No Square</option>
+            <option value="Circle In Square">Circle In Square</option>
+            <option value="Special Cut">Special Cut</option>
+            <option value="Sprocket">Sprocket</option>
+            <option value="Sheets">Sheets</option>
+            <option value="Inside Frame">Inside Frame</option>
+            <option value="N/A">N/A</option>
+        </select>
+
+        <label for="labelType">Label Type:</label>
+        <select id="labelType" name="labelType">
+            <option value="Choose Option">Choose Option</option>
+            <option value="PP Gloss">PP Gloss</option>
+            <option value="PP Clear">PP Clear</option>
+            <option value="PP Matt Inkject">PP Matt Inkject</option>
+            <option value="PP Silver">PP Silver</option>
+            <option value="PP Matt Laser">PP Matt Laser</option>
+            <option value="High Gloss">High Gloss</option>
+            <option value="Synthetic Matt">Synthetic Matt</option>
+            <option value="Premium Matt">Premium Matt</option>
+            <option value="Semi Gloss TT">Semi Gloss TT</option>
+            <option value="Fast Transfer">Fast Transfer</option>
+            <option value="Wristbands">Wristbands</option>
+            <option value="Tickets">Tickets</option>
+            <option value="Event Tickets">Event Tickets</option>
+            <option value="Matt Board">Matt Board</option>
+            <option value="Vouchers">Vouchers</option>
+            <option value="Antique White">Antique White</option>
+            <option value="Velmart">Velmart</option>
+        </select>
+
+        <label for="coreSize">Core Size:</label>
+        <select id="coreSize" name="coreSize">
+            <!-- Add options dynamically if needed -->
+            <option value="Choose Option">Choose Option</option>
+            <option value="40">40</option>
+            <option value="76">76</option>
+            <option value="A4">A4</option>
+            <option value="FAN">FAN</option>
+        </select>
+
+        <label for="width">Width:</label>
+        <input type="text" id="width" name="width" placeholder="Enter width">
+
+        <label for="length">Length:</label>
+        <input type="text" id="length" name="length" placeholder="Enter length">
+
+        <label for="labelsPerRoll">Labels Per Roll:</label>
+        <input type="text" id="labelsPerRoll" name="labelsPerRoll" placeholder="Enter Labels Per Roll">
+
+        <label for="rollsQuantity">Rolls Quantity:</label>
+        <input type="text" id="rollsQuantity" name="rollsQuantity" placeholder="Enter Rolls Quantity">
+
+        <label for="comment">Comment:</label>
+        <textarea id="comment" name="comment" rows="4"></textarea>
+        <!-- ... (other form fields) ... -->
+
+        <button type="button" onclick="placeOrder()">Place Order</button>
+        <button type="button" onclick="saveOrderHistory()">Save History</button>
+    </form>
+
+    <h2>Order History</h2>
+    <table id="orderHistory">
+        <thead>
+            <tr>
+                <th>Date</th>
+                <th>Account Manager</th>
+                <th>Material Cut</th>
+                <th>Special Cut</th>
+                <th>Label Type</th>
+                <th>Core Size</th>
+                <th>Width</th>
+                <th>Length</th>
+                <th>Labels Per Roll</th>
+                <th>Rolls Quantity</th>
+                <th>Comment</th>
+                <th>Action</th>
+            </tr>
+        </thead>
+        <tbody>
+            <!-- Order history will be populated here -->
+        </tbody>
+    </table>
+
+    <script>
+      const ws = new WebSocket('ws://localhost:3000'); // Adjust the URL based on your server location
+
+      ws.onopen = () => {
+        console.log('WebSocket connection opened.');
+      };
+
+      ws.onmessage = (event) => {
+        console.log('Received message:', event.data);
+
+        // Handle the received message and update the UI accordingly
+        const orders = JSON.parse(event.data);
+        updateOrders(orders);
+      };
+
+      ws.onclose = () => {
+        console.log('WebSocket connection closed.');
+
+        // Handle the closed connection (e.g., attempt to reconnect)
+      };
+
+      function sendMessage(message) {
+        ws.send(JSON.stringify(message));
+      }
+
+      function updateOrders(orders) {
+        const orderHistoryTable = document.getElementById('orderHistory').getElementsByTagName('tbody')[0];
+        orderHistoryTable.innerHTML = ''; // Clear previous orders
+
+        orders.forEach((order) => {
+          const newRow = orderHistoryTable.insertRow(0);
+
+          const cells = [
+            order.date,
+            order.accountManager,
+            order.materialCut,
+            order.specialCut,
+            order.labelType,
+            order.coreSize,
+            order.width,
+            order.length,
+            order.labelsPerRoll,
+            order.rollsQuantity,
+            order.comment,
+            getStatusButton(order),
+            getActionButtons(order.id),
+          ];
+
+          cells.forEach((value, index) => {
+            const cell = newRow.insertCell(index);
+            cell.innerHTML = value;
+          });
+        });
+      }
+
+      function getStatusButton(order) {
+        const statusButton = document.createElement('button');
+        statusButton.innerText = order.status || 'Pending';
+        statusButton.disabled = true; // Disable the button, status is not editable by the client
+        statusButton.style.backgroundColor = getStatusColor(order.status);
+        return statusButton.outerHTML;
+      }
+
+      function getStatusColor(status) {
+        switch (status) {
+          case 'Completed':
+            return '#4CAF50'; // Green
+          case 'Busy':
+            return '#ff8c00'; // dark orange
+          default:
+            return ''; // No color for 'Pending'
+        }
+      }
+
+      function getActionButtons(orderId) {
+        return `<button onclick="markOrderCompleted('${orderId}')">Completed</button>` +
+               `<button onclick="markOrderBusy('${orderId}')">Busy</button>` +
+               `<button onclick="deleteOrder('${orderId}')">Delete</button>`;
+      }
+
+      function markOrderCompleted(orderId) {
+        const message = {
+          type: 'markOrderCompleted',
+          data: orderId,
+        };
+        sendMessage(message);
+      }
+
+      function markOrderBusy(orderId) {
+        const message = {
+          type: 'markOrderBusy',
+          data: orderId,
+        };
+        sendMessage(message);
+      }
+
+      function deleteOrder(orderId) {
+        const message = {
+          type: 'deleteOrder',
+          data: orderId,
+        };
+        sendMessage(message);
+      }
+
+      function markOrderBusy(orderId) {
+        const message = {
+          type: 'markOrderBusy',
+          data: orderId,
+        };
+        sendMessage(message);
+      }
+
+      function saveOrderHistory() {
+        const orderHistoryTable = document.getElementById('orderHistory');
+        const orderHistoryHtml = orderHistoryTable.outerHTML;
+
+        const blob = new Blob([orderHistoryHtml], { type: 'text/html' });
+        const a = document.createElement('a');
+        a.href = URL.createObjectURL(blob);
+        a.download = 'order_history.html';
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+      }
+
+      function placeOrder() {
+        const accountManager = document.getElementById('accountManager').value;
+        const materialCut = document.getElementById('materialCut').value;
+        const specialCut = document.getElementById('specialCut').value;
+        const labelType = document.getElementById('labelType').value;
+        const coreSize = document.getElementById('coreSize').value;
+        const width = document.getElementById('width').value;
+        const length = document.getElementById('length').value;
+        const labelsPerRoll = document.getElementById('labelsPerRoll').value;
+        const rollsQuantity = document.getElementById('rollsQuantity').value;
+        const comment = document.getElementById('comment').value;
+
+        const currentDate = new Date();
+        const formattedDate = currentDate.toISOString().slice(0, 10);
+
+        const orderDetails = {
+          id: new Date().getTime().toString(),
+          date: formattedDate,
+          accountManager,
+          materialCut,
+          specialCut,
+          labelType,
+          coreSize,
+          width,
+          length,
+          labelsPerRoll,
+          rollsQuantity,
+          comment,
+          status: 'Pending',
+        };
+
+        const message = {
+          type: 'placeOrder',
+          data: orderDetails,
+        };
+
+        sendMessage(message);
+      }
+    </script>
+
+<script src="client.js"></script>
+
+</body>
+</html>
